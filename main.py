@@ -45,7 +45,7 @@ def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str)
         return audio_path
     else:
         from elevenlabs.client import ElevenLabs
-        api_key = os.getenv("ELEVENLABS_API_KEY")
+        api_key = os.getenv("ELEVENLABS_API_KEY_FILE")
         voice_id = os.getenv("VOICE_ID")
 
         print(f"api_key: {api_key}")
@@ -93,7 +93,7 @@ async def predict_image(
             # download image from url
             print("Downloading image...")
             try:
-                gcp_base = os.getenv("GCP_BASE")
+                gcp_base = os.getenv("GCP_BASE_FILE")
                 response = requests.get(f"{gcp_base}/{user_id}")
                 response.raise_for_status()
                 print("Image downloaded successfully!")
