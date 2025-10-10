@@ -101,7 +101,7 @@ async def predict_image(
         "python", "app/inference.py",
         "--driven_audio", audio_path,
         "--source_image", img_path,
-        "--result_dir", out_path,
+        "--result_dir", f"{out_path}/{session_id}.mp4",
         "--preprocess", "full",
         "--enhancer", "gfpgan",
         "--still",
