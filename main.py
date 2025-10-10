@@ -2,7 +2,6 @@ import asyncio
 
 from fastapi import FastAPI, status, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
 import requests
 
 
@@ -25,10 +24,6 @@ def cleanup_files(temp_files: list):
 
     torch.cuda.empty_cache()
     gc.collect()
-
-
-class Words(BaseModel):
-    words: str
 
 
 def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str):
