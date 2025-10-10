@@ -42,6 +42,9 @@ def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str)
         api_key = os.getenv("ELEVENLABS_API_KEY")
         voice_id = os.getenv("VOICE_ID")
 
+        print(f"api_key: {api_key}")
+        print(f"voice_id: {voice_id}")
+
         elevenlabs = ElevenLabs(api_key=api_key)
         response = elevenlabs.text_to_speech.convert(
             voice_id=voice_id,
