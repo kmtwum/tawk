@@ -9,6 +9,13 @@ import torch
 import gc
 import uuid
 
+from src.facerender.pirender_animate import AnimateFromCoeff_PIRender
+from src.generate_batch import get_data
+from src.generate_facerender_batch import get_facerender_data
+from src.test_audio2coeff import Audio2Coeff
+from src.utils.init_path import init_path
+from src.utils.preprocess import CropAndExtract
+
 app = FastAPI()
 from dotenv import load_dotenv
 
@@ -95,32 +102,76 @@ async def predict_image(
     audio_path = generate_tts(text, tts_preference, out_path, str(session_id))
     temp_files.append(audio_path)
 
-    output_file = f"{out_path}/{session_id}.mp4"
+    print("Generating video...")
+    video_path = process_video(out_path, img_path, audio_path, session_id)
 
-    process = await asyncio.create_subprocess_exec(
-        "python", "inference.py",
-        "--driven_audio", audio_path,
-        "--source_image", img_path,
-        "--result_dir", f"{out_path}/{session_id}",
-        "--preprocess", "full",
-        "--facerender", "pirender",
-        "--enhancer", "gfpgan",
-        "--still",
-    )
-    await process.wait()
+    print(f"Video generated at {video_path}!")
+
+    populate_temp_files(temp_files, out_path, user_id, str(session_id))
 
     # Schedule cleanup after the response is sent
     background_tasks.add_task(cleanup_files, temp_files)
 
     if stream:
+        print("Streaming video...")
+        file_size = os.path.getsize(video_path)
+
         def video_stream():
-            with open(output_file, "rb") as s:
+            with open(video_path, "rb") as s:
                 while chunk := s.read(8192):
                     yield chunk
 
-        return StreamingResponse(video_stream(), media_type="video/mp4")
+        return StreamingResponse(
+            video_stream(),
+            media_type="video/mp4",
+            headers={
+                "Content-Length": str(file_size),
+                "Accept-Ranges": "bytes",
+                "Content-Disposition": "inline; filename=result.mp4"
+            }
+        )
 
-    return FileResponse(output_file, media_type="video/mp4", filename="result.mp4")
+    print("Sending video...")
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        filename="result.mp4",
+        headers={"Accept-Ranges": "bytes"}
+    )
+
+
+def process_video(user_path, pic_path, audio_path, session_id):
+    pre_process = "full"
+    check_points = "/app/checkpoints"
+    config_path = "/app/src/config"
+    device = "cuda"
+    renderer = "pirender"
+
+    sad_talker_paths = init_path(check_points, config_path, "256", False, pre_process)
+    preprocess_model = CropAndExtract(sad_talker_paths, device)
+
+    audio_to_coeff = Audio2Coeff(sad_talker_paths, device)
+    animate_from_coeff = AnimateFromCoeff_PIRender(sad_talker_paths, device)
+    ref_eyeblink_coeff_path = None
+    ref_pose_coeff_path = None
+
+    meta_dir = os.path.join(user_path, 'meta')
+    os.makedirs(meta_dir, exist_ok=True)
+    print('3DMM Extraction for source image')
+    first_coeff_path, crop_pic_path, crop_info = preprocess_model.generate(pic_path, meta_dir, pre_process, 256)
+
+    batch = get_data(first_coeff_path, audio_path, device, ref_eyeblink_coeff_path, still=True)
+    coeff_path = audio_to_coeff.generate(batch, user_path, 1, ref_pose_coeff_path)
+
+    data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path,
+                               32, None, None, None,
+                               expression_scale=2, still_mode=True,
+                               preprocess=pre_process, face_model=renderer, session=str(session_id))
+
+    video_path = animate_from_coeff.generate(data, user_path, pic_path, crop_info,
+                                             enhancer=None, background_enhancer=None,
+                                             preprocess=pre_process, skip_background_blend=True)
+    return video_path
 
 
 def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
