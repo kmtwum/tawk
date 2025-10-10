@@ -42,7 +42,7 @@ def split_coeff(coeffs):
         }
 
 
-class CropAndExtract():
+class CropAndExtract:
     def __init__(self, sadtalker_path, device):
 
         self.propress = Preprocesser(device)

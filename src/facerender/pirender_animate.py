@@ -45,7 +45,7 @@ class AnimateFromCoeff_PIRender():
 
     def generate(self, x, video_save_dir, pic_path, crop_info, enhancer=None, background_enhancer=None,
                  preprocess='crop', img_size=256):
-
+        print(f"Generating video from coeffs for {self.device}")
         source_image = x['source_image'].type(torch.FloatTensor)
         source_semantics = x['source_semantics'].type(torch.FloatTensor)
         target_semantics = x['target_semantics_list'].type(torch.FloatTensor)
@@ -111,6 +111,7 @@ class AnimateFromCoeff_PIRender():
 
             #### paste back then enhancers
         if enhancer:
+            print('enhancer is enabled')
             video_name_enhancer = x['video_name'] + '_enhanced.mp4'
             enhanced_path = os.path.join(video_save_dir, 'temp_' + video_name_enhancer)
             av_path_enhancer = os.path.join(video_save_dir, video_name_enhancer)
