@@ -88,7 +88,7 @@ async def predict_image(
 
     # Save image
     if user_id:
-        img_path = f"/app/img/{user_id}.jpg"
+        img_path = f"/app/user_img/{user_id}.jpg"
         if not os.path.exists(img_path):
             # download image from url
             print("Downloading image...")
@@ -205,8 +205,8 @@ def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
 
 @app.post("/presave-photo")
 async def upload_photo(user_id: str = Form(...), image: UploadFile = File(...)):
-    os.makedirs("/app/img", exist_ok=True)
-    img_path = f"/app/img/{user_id}.jpg"
+    os.makedirs("/app/user_img", exist_ok=True)
+    img_path = f"/app/user_img/{user_id}.jpg"
 
     with open(img_path, "wb") as f:
         f.write(await image.read())
