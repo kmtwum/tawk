@@ -38,8 +38,10 @@ def main(args):
     audio_to_coeff = Audio2Coeff(sadtalker_paths,  device)
 
     if args.facerender == 'facevid2vid':
+        print("use facevid2vid for animation")
         animate_from_coeff = AnimateFromCoeff(sadtalker_paths, device)
     elif args.facerender == 'pirender':
+        print("use pirender for animation")
         animate_from_coeff = AnimateFromCoeff_PIRender(sadtalker_paths, device)
     else:
         raise(RuntimeError('Unknown model: {}'.format(args.facerender)))
@@ -92,7 +94,7 @@ def main(args):
                                 enhancer=args.enhancer, background_enhancer=args.background_enhancer, preprocess=args.preprocess, img_size=args.size)
     
     shutil.move(result, save_dir+'.mp4')
-    print('The generated video is named:', save_dir+'.mp4')
+    print('The final video is named:', save_dir+'.mp4')
 
     if not args.verbose:
         shutil.rmtree(save_dir)
