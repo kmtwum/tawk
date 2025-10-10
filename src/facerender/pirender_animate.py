@@ -29,7 +29,7 @@ except:
     in_webui = False
 
 
-class AnimateFromCoeff_PIRender():
+class AnimateFromCoeff_PIRender:
 
     def __init__(self, sadtalker_path, device):
 
@@ -44,7 +44,7 @@ class AnimateFromCoeff_PIRender():
         self.device = device
 
     def generate(self, x, video_save_dir, pic_path, crop_info, enhancer=None, background_enhancer=None,
-                 preprocess='crop', img_size=256):
+                 preprocess='crop', img_size=256, skip_background_blend=False):
         print(f"Generating video from coeffs for {self.device}")
         source_image = x['source_image'].type(torch.FloatTensor)
         source_semantics = x['source_semantics'].type(torch.FloatTensor)
@@ -75,19 +75,16 @@ class AnimateFromCoeff_PIRender():
             result = [cv2.resize(result_i, (img_size, int(img_size * original_size[1] / original_size[0]))) for result_i
                       in result]
 
+        # Use the imageio library to save the result as a video file with a frame rate of 25.
         video_name = x['video_name'] + '.mp4'
         path = os.path.join(video_save_dir, 'temp_' + video_name)
-
         imageio.mimsave(path, result, fps=float(25))
 
-        av_path = os.path.join(video_save_dir, video_name)
-        return_path = av_path
-
+        # Takes the audio path in parameter x and generates a new audio file path
         audio_path = x['audio_path']
         audio_name = os.path.splitext(os.path.split(audio_path)[-1])[0]
         new_audio_path = os.path.join(video_save_dir, audio_name + '.wav')
         start_time = 0
-        # cog will not keep the .mp3 filename
         sound = AudioSegment.from_file(audio_path)
         frames = frame_num
         end_time = start_time + frames * 1 / 25 * 1000
@@ -95,21 +92,28 @@ class AnimateFromCoeff_PIRender():
         word = word1[start_time:end_time]
         word.export(new_audio_path, format="wav")
 
+        # Set default return path
+        av_path = os.path.join(video_save_dir, video_name)
         save_video_with_watermark(path, new_audio_path, av_path)
-        print(f'The pirender animated video is named {video_save_dir}/{video_name}')
+        return_path = av_path
+        full_video_path = av_path
+        print(f'The pi-render animated video is named {video_save_dir}/{video_name}')
 
         if 'full' in preprocess.lower():
             # only add watermark to the full image.
             video_name_full = x['video_name'] + '_full.mp4'
+
+            if skip_background_blend:
+                print(f'Skipping background_blend, pi-render full animated video is at {return_path}')
+                return return_path
+
             full_video_path = os.path.join(video_save_dir, video_name_full)
             return_path = full_video_path
             paste_pic(path, pic_path, crop_info, new_audio_path, full_video_path,
                       extended_crop=True if 'ext' in preprocess.lower() else False)
-            print(f'The pirender full animated video is named {video_save_dir}/{video_name_full}')
-        else:
-            full_video_path = av_path
+            print(f'The pi-render full animated video is named {video_save_dir}/{video_name_full}')
 
-            #### paste back then enhancers
+        #### paste back then enhancers
         if enhancer:
             print('enhancer is enabled')
             video_name_enhancer = x['video_name'] + '_enhanced.mp4'
