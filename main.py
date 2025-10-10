@@ -1,7 +1,6 @@
 from fastapi import FastAPI, status, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from loguru import logger
 import requests
 
 
@@ -148,7 +147,7 @@ async def upload_photo(user_id: str = Form(...), image: UploadFile = File(...)):
 @app.get("/health")
 async def health_check():
     try:
-        logger.info("health 200")
+        print("health 200")
         return status.HTTP_200_OK
 
     except:
