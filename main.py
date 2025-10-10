@@ -182,9 +182,8 @@ def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
     temp_files.append(f"{out_path}/coeff##{session_id}.mp4")
     temp_files.append(f"{out_path}/temp_coeff##{session_id}.mp4")
     temp_files.append(f"{out_path}/temp_{user_id}##{session_id}.mp4")
-    temp_files.append(f"{out_path}/{user_id}##{session_id}.txt")
-    temp_files.append(f"{out_path}/{user_id}##{session_id}.mp4")
-    temp_files.append(f"{out_path}/{user_id}##{session_id}.mat")
+    temp_files.append(f"{out_path}/{session_id}.mp4")
+    temp_files.append(f"{out_path}/temp_{session_id}.mp4")
 
 
 @app.post("/presave-photo")
