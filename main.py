@@ -72,7 +72,7 @@ async def predict_image(
         user_id: str = Form(...),
         size: str = Form("256"),
         tts_preference: str = Form("elevenlabs"),
-        stream: bool = False):
+        stream: bool = Form(...)):
 
     out_path = f"/app/output/{user_id}"
     os.makedirs(out_path, exist_ok=True)
@@ -98,11 +98,12 @@ async def predict_image(
     temp_files.append(audio_path)
 
     process = await asyncio.create_subprocess_exec(
-        "python", "app/inference.py",
+        "python", "inference.py",
         "--driven_audio", audio_path,
         "--source_image", img_path,
-        "--result_dir", f"{out_path}/{session_id}.mp4",
+        "--result_dir", f"{out_path}/{session_id}",
         "--preprocess", "full",
+        "--facerender", "pirender",
         "--enhancer", "gfpgan",
         "--still",
     )

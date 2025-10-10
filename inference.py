@@ -19,7 +19,7 @@ def main(args):
 
     pic_path = args.source_image
     audio_path = args.driven_audio
-    save_dir = os.path.join(args.result_dir, strftime("%Y_%m_%d_%H.%M.%S"))
+    save_dir = args.result_dir
     os.makedirs(save_dir, exist_ok=True)
     pose_style = args.pose_style
     device = args.device
@@ -91,7 +91,7 @@ def main(args):
                                 batch_size, input_yaw_list, input_pitch_list, input_roll_list,
                                 expression_scale=args.expression_scale, still_mode=args.still, preprocess=args.preprocess, size=args.size, facemodel=args.facerender)
     
-    result = animate_from_coeff.generate(data, save_dir, pic_path, crop_info, \
+    result = animate_from_coeff.generate(data, save_dir, pic_path, crop_info,
                                 enhancer=args.enhancer, background_enhancer=args.background_enhancer, preprocess=args.preprocess, img_size=args.size)
     
     shutil.move(result, save_dir+'.mp4')
