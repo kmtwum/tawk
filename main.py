@@ -90,10 +90,18 @@ async def predict_image(
     if user_id:
         img_path = f"/app/img/{user_id}.jpg"
         if not os.path.exists(img_path):
-            # create new image from default avatar
-            with open("/app/img/avatar.png", "rb") as f:
-                with open(img_path, "wb") as f2:
-                    f2.write(f.read())
+            # download image from url
+            print("Downloading image...")
+            try:
+                gcp_base = os.getenv("GCP_BASE")
+                response = requests.get(f"{gcp_base}/{user_id}")
+                response.raise_for_status()
+                print("Image downloaded successfully!")
+                with open(img_path, "wb") as f:
+                    f.write(response.content)
+            except Exception as e:
+                print(f"Error downloading image: {e}")
+                img_path = "/app/img/avatar.jpg"
     else:
         img_path = "/app/img/avatar.jpg"
 
