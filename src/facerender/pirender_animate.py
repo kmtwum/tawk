@@ -95,7 +95,7 @@ class AnimateFromCoeff_PIRender():
         word = word1[start_time:end_time]
         word.export(new_audio_path, format="wav")
 
-        save_video_with_watermark(path, new_audio_path, av_path, watermark=False)
+        save_video_with_watermark(path, new_audio_path, av_path)
         print(f'The pirender animated video is named {video_save_dir}/{video_name}')
 
         if 'full' in preprocess.lower():
@@ -126,7 +126,7 @@ class AnimateFromCoeff_PIRender():
                                                              bg_upsampler=background_enhancer)
                 imageio.mimsave(enhanced_path, enhanced_images_gen_with_len, fps=float(25))
 
-            save_video_with_watermark(enhanced_path, new_audio_path, av_path_enhancer, watermark=False)
+            save_video_with_watermark(enhanced_path, new_audio_path, av_path_enhancer)
             print(f'The pirender enhanced animated video is named {video_save_dir}/{video_name_enhancer}')
             os.remove(enhanced_path)
 
