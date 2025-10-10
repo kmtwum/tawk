@@ -99,12 +99,12 @@ async def predict_image(
 
     process = await asyncio.create_subprocess_exec(
         "python", "app/inference.py",
-        "--audio_path", audio_path,
-        "--source_path", img_path,
-        "--output_path", out_path,
-        "--size", size,
-        "--steps", "15",
-        "--fast",
+        "--driven_audio", audio_path,
+        "--source_image", img_path,
+        "--result_dir", out_path,
+        "--preprocess", "full",
+        "--enhancer", "gfpgan",
+        "--still",
     )
     await process.wait()
 
