@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI, status, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -70,8 +72,10 @@ async def predict_image(
         background_tasks: BackgroundTasks,
         text: str = Form(...),
         user_id: str = Form(...),
+        size: str = Form("256"),
         tts_preference: str = Form("elevenlabs"),
         stream: bool = False):
+
     out_path = f"/app/output/{user_id}"
     os.makedirs(out_path, exist_ok=True)
 
@@ -86,7 +90,7 @@ async def predict_image(
         if not os.path.exists(img_path):
             # create new image from default avatar
             with open("/app/img/avatar.png", "rb") as f:
-                with open(pic_path, "wb") as f2:
+                with open(img_path, "wb") as f2:
                     f2.write(f.read())
     else:
         img_path = "/app/img/avatar.png"
@@ -99,7 +103,7 @@ async def predict_image(
         "python", "app/inference.py",
         "--audio_path", audio_path,
         "--source_path", img_path,
-        "--output_path", output_path,
+        "--output_path", out_path,
         "--size", size,
         "--steps", "15",
         "--fast",
@@ -111,13 +115,13 @@ async def predict_image(
 
     if stream:
         def video_stream():
-            with open(output_path, "rb") as s:
+            with open(out_path, "rb") as s:
                 while chunk := s.read(8192):
                     yield chunk
 
         return StreamingResponse(video_stream(), media_type="video/mp4")
 
-    return FileResponse(output_path, media_type="video/mp4", filename="result.mp4")
+    return FileResponse(out_path, media_type="video/mp4", filename="result.mp4")
 
 
 def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
@@ -136,9 +140,9 @@ def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
 @app.post("/presave-photo")
 async def upload_photo(user_id: str = Form(...), image: UploadFile = File(...)):
     os.makedirs("/app/img", exist_ok=True)
-    pic_path = f"/app/img/{user_id}.jpg"
+    img_path = f"/app/img/{user_id}.jpg"
 
-    with open(pic_path, "wb") as f:
+    with open(img_path, "wb") as f:
         f.write(await image.read())
 
     return {"message": "Photo uploaded successfully", "user_id": user_id}
