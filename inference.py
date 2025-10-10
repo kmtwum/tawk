@@ -86,9 +86,9 @@ def main(args):
         gen_composed_video(args, device, first_coeff_path, coeff_path, audio_path, os.path.join(save_dir, '3dface.mp4'))
     
     #coeff2video
-    data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path, 
-                                batch_size, input_yaw_list, input_pitch_list, input_roll_list,
-                                expression_scale=args.expression_scale, still_mode=args.still, preprocess=args.preprocess, size=args.size, facemodel=args.facerender)
+    data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path,
+                               batch_size, input_yaw_list, input_pitch_list, input_roll_list,
+                               expression_scale=args.expression_scale, still_mode=args.still, preprocess=args.preprocess, size=args.size, face_model=args.facerender)
     
     result = animate_from_coeff.generate(data, save_dir, pic_path, crop_info,
                                 enhancer=args.enhancer, background_enhancer=args.background_enhancer, preprocess=args.preprocess, img_size=args.size)
