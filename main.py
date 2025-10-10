@@ -4,7 +4,6 @@ from fastapi import FastAPI, status, HTTPException, UploadFile, File, Form, Back
 from fastapi.responses import FileResponse, StreamingResponse
 import requests
 
-
 import os
 import torch
 import gc
@@ -70,10 +69,8 @@ async def predict_image(
         background_tasks: BackgroundTasks,
         text: str = Form(...),
         user_id: str = Form(...),
-        size: str = Form("256"),
         tts_preference: str = Form("elevenlabs"),
-        stream: bool = Form(...)):
-
+        stream: bool = Form(True)):
     out_path = f"/app/output/{user_id}"
     os.makedirs(out_path, exist_ok=True)
 
@@ -91,9 +88,10 @@ async def predict_image(
                 with open(img_path, "wb") as f2:
                     f2.write(f.read())
     else:
-        img_path = "/app/img/avatar.png"
+        img_path = "/app/img/avatar.jpg"
 
     # Generate TTS
+    print("Generating TTS...")
     audio_path = generate_tts(text, tts_preference, out_path, str(session_id))
     temp_files.append(audio_path)
 
