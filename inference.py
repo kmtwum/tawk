@@ -32,7 +32,7 @@ def main(args):
 
     current_root_path = os.path.split(sys.argv[0])[0]
 
-    sadtalker_paths = init_path(args.checkpoint_dir, os.path.join(current_root_path, 'src/config'), args.size, args.old_version, args.preprocess)
+    sadtalker_paths = init_path(args.checkpoint_dir, os.path.join("/app", 'src/config'), "256", args.old_version, args.preprocess)
 
     #init model
     preprocess_model = CropAndExtract(sadtalker_paths, device)
@@ -47,11 +47,10 @@ def main(args):
         raise(RuntimeError('Unknown model: {}'.format(args.facerender)))
 
     #crop image and extract 3dmm from image
-    first_frame_dir = os.path.join(save_dir, 'first_frame_dir')
-    os.makedirs(first_frame_dir, exist_ok=True)
+    meta_dir = os.path.join(save_dir, 'meta')
+    os.makedirs(meta_dir, exist_ok=True)
     print('3DMM Extraction for source image')
-    first_coeff_path, crop_pic_path, crop_info =  preprocess_model.generate(pic_path, first_frame_dir, args.preprocess,\
-                                                                             source_image_flag=True, pic_size=args.size)
+    first_coeff_path, crop_pic_path, crop_info =  preprocess_model.generate(pic_path, meta_dir, args.preprocess, pic_size=args.size)
     if first_coeff_path is None:
         print("Can't get the coeffs of the input")
         return
@@ -61,7 +60,7 @@ def main(args):
         ref_eyeblink_frame_dir = os.path.join(save_dir, ref_eyeblink_videoname)
         os.makedirs(ref_eyeblink_frame_dir, exist_ok=True)
         print('3DMM Extraction for the reference video providing eye blinking')
-        ref_eyeblink_coeff_path, _, _ =  preprocess_model.generate(ref_eyeblink, ref_eyeblink_frame_dir, args.preprocess, source_image_flag=False)
+        ref_eyeblink_coeff_path, _, _ =  preprocess_model.generate(ref_eyeblink, ref_eyeblink_frame_dir, args.preprocess)
     else:
         ref_eyeblink_coeff_path=None
 
@@ -73,7 +72,7 @@ def main(args):
             ref_pose_frame_dir = os.path.join(save_dir, ref_pose_videoname)
             os.makedirs(ref_pose_frame_dir, exist_ok=True)
             print('3DMM Extraction for the reference video providing pose')
-            ref_pose_coeff_path, _, _ =  preprocess_model.generate(ref_pose, ref_pose_frame_dir, args.preprocess, source_image_flag=False)
+            ref_pose_coeff_path, _, _ =  preprocess_model.generate(ref_pose, ref_pose_frame_dir, args.preprocess)
     else:
         ref_pose_coeff_path=None
 
@@ -108,7 +107,7 @@ if __name__ == '__main__':
     parser.add_argument("--source_image", default='./examples/source_image/full_body_1.png', help="path to source image")
     parser.add_argument("--ref_eyeblink", default=None, help="path to reference video providing eye blinking")
     parser.add_argument("--ref_pose", default=None, help="path to reference video providing pose")
-    parser.add_argument("--checkpoint_dir", default='./checkpoints', help="path to output")
+    parser.add_argument("--checkpoint_dir", default='/app/checkpoints', help="path to output")
     parser.add_argument("--result_dir", default='./results', help="path to output")
     parser.add_argument("--pose_style", type=int, default=0,  help="input pose style from [0, 46)")
     parser.add_argument("--batch_size", type=int, default=2,  help="the batch size of facerender")
@@ -125,7 +124,7 @@ if __name__ == '__main__':
     parser.add_argument("--preprocess", default='crop', choices=['crop', 'extcrop', 'resize', 'full', 'extfull'], help="how to preprocess the images" ) 
     parser.add_argument("--verbose",action="store_true", help="saving the intermedia output or not" ) 
     parser.add_argument("--old_version",action="store_true", help="use the pth other than safetensor version" )
-    parser.add_argument("--facerender", default='facevid2vid', choices=['pirender', 'facevid2vid'] )
+    parser.add_argument("--facerender", default='pirender', choices=['pirender', 'facevid2vid'] )
 
 
     # net structure and parameters

@@ -1,18 +1,17 @@
 import numpy as np
 import cv2, os, sys, torch
 from tqdm import tqdm
-from PIL import Image 
+from PIL import Image
 
 # 3dmm extraction
 import safetensors
-import safetensors.torch 
+import safetensors.torch
 from src.face3d.util.preprocess import align_img
 from src.face3d.util.load_mats import load_lm3d
 from src.face3d.models import networks
 
 from scipy.io import loadmat, savemat
 from src.utils.croper import Preprocesser
-
 
 import warnings
 
@@ -48,51 +47,36 @@ class CropAndExtract():
 
         self.propress = Preprocesser(device)
         self.net_recon = networks.define_net_recon(net_recon='resnet50', use_last_fc=False, init_path='').to(device)
-        
+
         if sadtalker_path['use_safetensor']:
-            checkpoint = safetensors.torch.load_file(sadtalker_path['checkpoint'])    
+            checkpoint = safetensors.torch.load_file(sadtalker_path['checkpoint'])
             self.net_recon.load_state_dict(load_x_from_safetensor(checkpoint, 'face_3drecon'))
         else:
-            checkpoint = torch.load(sadtalker_path['path_of_net_recon_model'], map_location=torch.device(device))    
+            checkpoint = torch.load(sadtalker_path['path_of_net_recon_model'], map_location=torch.device(device))
             self.net_recon.load_state_dict(checkpoint['net_recon'])
 
         self.net_recon.eval()
         self.lm3d_std = load_lm3d(sadtalker_path['dir_of_BFM_fitting'])
         self.device = device
-    
-    def generate(self, input_path, save_dir, crop_or_resize='crop', source_image_flag=False, pic_size=256):
 
-        pic_name = os.path.splitext(os.path.split(input_path)[-1])[0]  
+    def generate(self, input_path, meta_dir, crop_or_resize, pic_size=256):
 
-        landmarks_path =  os.path.join(save_dir, pic_name+'_landmarks.txt') 
-        coeff_path =  os.path.join(save_dir, pic_name+'.mat')  
-        png_path =  os.path.join(save_dir, pic_name+'.png')  
+        landmarks_path = os.path.join(meta_dir, 'landmarks.txt')
+        coeff_path = os.path.join(meta_dir, 'coeff.mat')
+        png_path = os.path.join(meta_dir, 'avatar.png')
 
-        #load input
+        # load input
         if not os.path.isfile(input_path):
             raise ValueError('input_path must be a valid path to video/image file')
-        elif input_path.split('.')[-1] in ['jpg', 'png', 'jpeg']:
-            # loader for first frame
-            full_frames = [cv2.imread(input_path)]
-            fps = 25
-        else:
-            # loader for videos
-            video_stream = cv2.VideoCapture(input_path)
-            fps = video_stream.get(cv2.CAP_PROP_FPS)
-            full_frames = [] 
-            while 1:
-                still_reading, frame = video_stream.read()
-                if not still_reading:
-                    video_stream.release()
-                    break 
-                full_frames.append(frame) 
-                if source_image_flag:
-                    break
 
-        x_full_frames= [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  for frame in full_frames] 
+        # loader for first frame
+        full_frames = [cv2.imread(input_path)]
+
+        x_full_frames = [cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) for frame in full_frames]
 
         #### crop images as the 
         if 'crop' in crop_or_resize.lower(): # default crop
+            print('Using default crop mode.')
             x_full_frames, crop, quad = self.propress.crop(x_full_frames, still=True if 'ext' in crop_or_resize.lower() else False, xsize=512)
             clx, cly, crx, cry = crop
             lx, ly, rx, ry = quad
@@ -100,7 +84,8 @@ class CropAndExtract():
             oy1, oy2, ox1, ox2 = cly+ly, cly+ry, clx+lx, clx+rx
             crop_info = ((ox2 - ox1, oy2 - oy1), crop, quad)
         elif 'full' in crop_or_resize.lower():
-            x_full_frames, crop, quad = self.propress.crop(x_full_frames, still=True if 'ext' in crop_or_resize.lower() else False, xsize=512)
+            print('Using full image mode.')
+            x_full_frames, crop, quad = self.propress.crop(x_full_frames, still=True if 'ext' in crop_or_resize.lower() else False, xsize=pic_size)
             clx, cly, crx, cry = crop
             lx, ly, rx, ry = quad
             lx, ly, rx, ry = int(lx), int(ly), int(rx), int(ry)
@@ -110,7 +95,7 @@ class CropAndExtract():
             oy1, oy2, ox1, ox2 = 0, x_full_frames[0].shape[0], 0, x_full_frames[0].shape[1] 
             crop_info = ((ox2 - ox1, oy2 - oy1), None, None)
 
-        frames_pil = [Image.fromarray(cv2.resize(frame,(pic_size, pic_size))) for frame in x_full_frames]
+        frames_pil = [Image.fromarray(cv2.resize(frame, (pic_size, pic_size))) for frame in x_full_frames]
         if len(frames_pil) == 0:
             print('No face is detected in the input file')
             return None, None
@@ -120,7 +105,7 @@ class CropAndExtract():
             cv2.imwrite(png_path, cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
 
         # 2. get the landmark according to the detected face. 
-        if not os.path.isfile(landmarks_path): 
+        if not os.path.isfile(landmarks_path):
             lm = self.propress.predictor.extract_keypoint(frames_pil, landmarks_path)
         else:
             print(' Using saved landmarks.')
@@ -128,13 +113,14 @@ class CropAndExtract():
             lm = lm.reshape([len(x_full_frames), -1, 2])
 
         if not os.path.isfile(coeff_path):
-            # load 3dmm paramter generator from Deep3DFaceRecon_pytorch 
-            video_coeffs, full_coeffs = [],  []
+            print(f'Extracting 3dmm params into {coeff_path}')
+            # load 3dmm parameter generator from Deep3DFaceRecon_pytorch
+            video_coeffs, full_coeffs = [], []
             for idx in tqdm(range(len(frames_pil)), desc='3DMM Extraction In Video:'):
                 frame = frames_pil[idx]
                 W,H = frame.size
                 lm1 = lm[idx].reshape([-1, 2])
-            
+
                 if np.mean(lm1) == -1:
                     lm1 = (self.lm3d_std[:, :2]+1)/2.
                     lm1 = np.concatenate(
@@ -144,7 +130,7 @@ class CropAndExtract():
                     lm1[:, -1] = H - 1 - lm1[:, -1]
 
                 trans_params, im1, lm1, _ = align_img(frame, lm1, self.lm3d_std)
- 
+
                 trans_params = np.array([float(item) for item in np.hsplit(trans_params, 5)]).astype(np.float32)
                 im_t = torch.tensor(np.array(im1)/255., dtype=torch.float32).permute(2, 0, 1).to(self.device).unsqueeze(0)
                 
@@ -155,16 +141,18 @@ class CropAndExtract():
                 pred_coeff = {key:coeffs[key].cpu().numpy() for key in coeffs}
  
                 pred_coeff = np.concatenate([
-                    pred_coeff['exp'], 
+                    pred_coeff['exp'],
                     pred_coeff['angle'],
                     pred_coeff['trans'],
                     trans_params[2:][None],
-                    ], 1)
+                ], 1)
                 video_coeffs.append(pred_coeff)
                 full_coeffs.append(full_coeff.cpu().numpy())
 
             semantic_npy = np.array(video_coeffs)[:,0] 
 
             savemat(coeff_path, {'coeff_3dmm': semantic_npy, 'full_3dmm': np.array(full_coeffs)[0]})
+        else:
+            print(' Using saved coeffs.')
 
         return coeff_path, png_path, crop_info

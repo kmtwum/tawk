@@ -98,7 +98,7 @@ class Predictor(BasePredictor):
 
         print("3DMM Extraction for source image")
         first_coeff_path, crop_pic_path, crop_info = self.preprocess_model.generate(
-            args.pic_path, first_frame_dir, preprocess, source_image_flag=True
+            args.pic_path, first_frame_dir, preprocess
         )
         if first_coeff_path is None:
             print("Can't get the coeffs of the input")
@@ -126,7 +126,7 @@ class Predictor(BasePredictor):
                 os.makedirs(ref_pose_frame_dir, exist_ok=True)
                 print("3DMM Extraction for the reference video providing pose")
                 ref_pose_coeff_path, _, _ = self.preprocess_model.generate(
-                    ref_pose, ref_pose_frame_dir
+                    ref_pose, ref_pose_frame_dir, preprocess
                 )
         else:
             ref_pose_coeff_path = None
