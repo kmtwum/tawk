@@ -45,7 +45,7 @@ def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str)
         return audio_path
     else:
         from elevenlabs.client import ElevenLabs
-        api_key = os.getenv("ELEVENLABS_API_KEY_FILE")
+        api_key = get_secret_key("ELEVENLABS_API_KEY_FILE")
         voice_id = os.getenv("VOICE_ID")
 
         print(f"api_key: {api_key}")
@@ -93,7 +93,8 @@ async def predict_image(
             # download image from url
             print("Downloading image...")
             try:
-                gcp_base = os.getenv("GCP_BASE_FILE")
+                gcp_base = get_secret_key("GCP_BASE_FILE")
+                print(f"GCP Base: {gcp_base}")
                 response = requests.get(f"{gcp_base}/{user_id}")
                 response.raise_for_status()
                 print("Image downloaded successfully!")
@@ -146,6 +147,14 @@ async def predict_image(
         filename="result.mp4",
         headers={"Accept-Ranges": "bytes"}
     )
+
+def get_secret_key(secret):
+    key_file = os.getenv(secret)
+    if key_file:
+        with open(key_file, 'r') as f:
+            api_key = f.read().strip()
+            return api_key
+    return None
 
 
 def process_video(user_path, pic_path, audio_path, session_id):
