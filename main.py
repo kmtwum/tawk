@@ -97,6 +97,8 @@ async def predict_image(
     audio_path = generate_tts(text, tts_preference, out_path, str(session_id))
     temp_files.append(audio_path)
 
+    output_file = f"{out_path}/{session_id}.mp4"
+
     process = await asyncio.create_subprocess_exec(
         "python", "inference.py",
         "--driven_audio", audio_path,
@@ -114,13 +116,13 @@ async def predict_image(
 
     if stream:
         def video_stream():
-            with open(out_path, "rb") as s:
+            with open(output_file, "rb") as s:
                 while chunk := s.read(8192):
                     yield chunk
 
         return StreamingResponse(video_stream(), media_type="video/mp4")
 
-    return FileResponse(out_path, media_type="video/mp4", filename="result.mp4")
+    return FileResponse(output_file, media_type="video/mp4", filename="result.mp4")
 
 
 def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
@@ -153,5 +155,5 @@ async def health_check():
         print("health 200")
         return status.HTTP_200_OK
 
-    except:
+    except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
