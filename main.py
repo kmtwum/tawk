@@ -48,9 +48,6 @@ def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str)
         api_key = get_secret_key("ELEVENLABS_API_KEY_FILE")
         voice_id = os.getenv("VOICE_ID")
 
-        print(f"api_key: {api_key}")
-        print(f"voice_id: {voice_id}")
-
         elevenlabs = ElevenLabs(api_key=api_key)
         response = elevenlabs.text_to_speech.convert(
             voice_id=voice_id,
@@ -94,7 +91,6 @@ async def predict_image(
             print("Downloading image...")
             try:
                 gcp_base = get_secret_key("GCP_BASE_FILE")
-                print(f"GCP Base: {gcp_base}")
                 response = requests.get(f"{gcp_base}/{user_id}")
                 response.raise_for_status()
                 print("Image downloaded successfully!")
