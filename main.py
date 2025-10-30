@@ -32,7 +32,7 @@ def cleanup_files(temp_files: list):
     gc.collect()
 
 
-def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str):
+def generate_tts(text: str, tts_preference: str, tts_voice_id: str, out_path: str, session_id: str):
     """Generate TTS audio"""
     if tts_preference == "coqui":
         tts_url = "http://tts:8000/generate"
@@ -47,6 +47,8 @@ def generate_tts(text: str, tts_preference: str, out_path: str, session_id: str)
         from elevenlabs.client import ElevenLabs
         api_key = get_secret_key("ELEVENLABS_API_KEY_FILE")
         voice_id = os.getenv("VOICE_ID")
+        if tts_voice_id:
+            voice_id = tts_voice_id
 
         elevenlabs = ElevenLabs(api_key=api_key)
         response = elevenlabs.text_to_speech.convert(
@@ -74,6 +76,7 @@ async def predict_image(
         text: str = Form(...),
         user_id: str = Form(...),
         tts_preference: str = Form("elevenlabs"),
+        tts_voice_id: str = Form(...),
         stream: bool = Form(True)):
     out_path = f"/app/output/{user_id}"
     os.makedirs(out_path, exist_ok=True)
@@ -104,7 +107,7 @@ async def predict_image(
 
     # Generate TTS
     print("Generating TTS...")
-    audio_path = generate_tts(text, tts_preference, out_path, str(session_id))
+    audio_path = generate_tts(text, tts_preference, tts_voice_id, out_path, str(session_id))
     temp_files.append(audio_path)
 
     print("Generating video...")
