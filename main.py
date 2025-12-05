@@ -81,7 +81,7 @@ async def predict_image(
         background_tasks: BackgroundTasks,
         text: str = Form(...),
         user_id: str = Form(...),
-        tts_preference: str = Form("elevenlabs"),
+        tts_preference: str = Form("coqui"),
         source_img: str = Form(None),
         source_aud: str = Form(None),
         tts_voice_id: str = Form(...),
