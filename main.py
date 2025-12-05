@@ -32,12 +32,18 @@ def cleanup_files(temp_files: list):
     gc.collect()
 
 
-def generate_tts(text: str, tts_preference: str, tts_voice_id: str, out_path: str, session_id: str):
+def generate_tts(text: str, tts_preference: str, tts_voice_id: str, out_path: str, session_id: str, user_id: str = None,
+                 voice_source: str = None):
     """Generate TTS audio"""
     if tts_preference == "coqui":
         tts_url = "http://tts:8000/generate"
-        tts_response = requests.post(tts_url,
-                                     json={"text": text, "model": "tts_models/multilingual/multi-dataset/xtts_v2"})
+        tts_response = requests.post(tts_url, json={
+            "text": text,
+            "split_sentences": False,
+            "source_aud": voice_source,
+            "clone": user_id,
+            "model": "tts_models/multilingual/multi-dataset/xtts_v2"
+        })
         tts_response.raise_for_status()
         audio_path = f"{out_path}/{session_id}.wav"
         with open(audio_path, "wb") as f:
@@ -76,6 +82,8 @@ async def predict_image(
         text: str = Form(...),
         user_id: str = Form(...),
         tts_preference: str = Form("elevenlabs"),
+        source_img: str = Form(None),
+        source_aud: str = Form(None),
         tts_voice_id: str = Form(...),
         stream: bool = Form(True)):
     out_path = f"/app/output/{user_id}"
@@ -94,7 +102,7 @@ async def predict_image(
             print("Downloading image...")
             try:
                 gcp_base = get_secret_key("GCP_BASE_FILE")
-                response = requests.get(f"{gcp_base}/{user_id}")
+                response = requests.get(f"{gcp_base}/{source_img}")
                 response.raise_for_status()
                 print("Image downloaded successfully!")
                 with open(img_path, "wb") as f:
@@ -107,7 +115,8 @@ async def predict_image(
 
     # Generate TTS
     print("Generating TTS...")
-    audio_path = generate_tts(text, tts_preference, tts_voice_id, out_path, str(session_id))
+    audio_path = generate_tts(text, tts_preference, tts_voice_id, out_path, session_id=str(session_id), user_id=user_id,
+                              voice_source=source_aud)
     temp_files.append(audio_path)
 
     print("Generating video...")
@@ -146,6 +155,7 @@ async def predict_image(
         filename="result.mp4",
         headers={"Accept-Ranges": "bytes"}
     )
+
 
 def get_secret_key(secret):
     key_file = os.getenv(secret)
