@@ -136,8 +136,7 @@ class Predictor(BasePredictor):
             first_coeff_path,
             args.audio_path,
             device,
-            ref_eyeblink_coeff_path,
-            still=still,
+            ref_eyeblink_coeff_path
         )
         coeff_path = self.audio_to_coeff.generate(
             batch, results_dir, args.pose_style, ref_pose_coeff_path
