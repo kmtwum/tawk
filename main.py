@@ -41,6 +41,7 @@ def generate_tts(text: str, tts_preference: str, tts_voice_id: str, out_path: st
             "text": text,
             "split_sentences": False,
             "source_aud": voice_source,
+            "speed": 1.3,
             "clone": user_id,
             "model": "tts_models/multilingual/multi-dataset/xtts_v2"
         })
@@ -95,23 +96,23 @@ async def predict_image(
     session_id = uuid.uuid4()
 
     # Save image
-    if user_id:
-        img_path = f"/app/user_img/{user_id}.jpg"
-        if not os.path.exists(img_path):
-            # download image from url
-            print("Downloading image...")
-            try:
-                gcp_base = get_secret_key("GCP_BASE_FILE")
-                response = requests.get(f"{gcp_base}/{source_img}")
-                response.raise_for_status()
-                print("Image downloaded successfully!")
-                with open(img_path, "wb") as f:
-                    f.write(response.content)
-            except Exception as e:
-                print(f"Error downloading image: {e}")
-                img_path = "/app/img/avatar.jpg"
-    else:
-        img_path = "/app/img/avatar.jpg"
+    # if user_id:
+    #     img_path = f"/app/user_img/{user_id}.jpg"
+    #     if not os.path.exists(img_path):
+    #         # download image from url
+    #         print("Downloading image...")
+    #         try:
+    #             gcp_base = get_secret_key("GCP_BASE_FILE")
+    #             response = requests.get(f"{gcp_base}/{source_img}")
+    #             response.raise_for_status()
+    #             print("Image downloaded successfully!")
+    #             with open(img_path, "wb") as f:
+    #                 f.write(response.content)
+    #         except Exception as e:
+    #             print(f"Error downloading image: {e}")
+    #             img_path = "/app/img/avatar.jpg"
+    # else:
+    img_path = "/app/img/avatar.jpg"
 
     # Generate TTS
     print("Generating TTS...")
@@ -186,7 +187,7 @@ def process_video(user_path, pic_path, audio_path, session_id):
     print('3DMM Extraction for source image')
     first_coeff_path, crop_pic_path, crop_info = preprocess_model.generate(pic_path, meta_dir, pre_process, 256)
 
-    batch = get_data(first_coeff_path, audio_path, device, ref_eyeblink_coeff_path, still=True)
+    batch = get_data(first_coeff_path, audio_path, device, ref_eyeblink_coeff_path)
     coeff_path = audio_to_coeff.generate(batch, user_path, 1, ref_pose_coeff_path)
 
     data = get_facerender_data(coeff_path, crop_pic_path, first_coeff_path, audio_path,
@@ -214,10 +215,11 @@ def populate_temp_files(temp_files: list, out_path, user_id, session_id: str):
 
 @app.post("/presave-photo")
 async def upload_photo(user_id: str = Form(...), image: UploadFile = File(...)):
+    import aiofiles
     os.makedirs("/app/user_img", exist_ok=True)
     img_path = f"/app/user_img/{user_id}.jpg"
 
-    with open(img_path, "wb") as f:
+    async with aiofiles(img_path, "wb") as f:
         f.write(await image.read())
 
     return {"message": "Photo uploaded successfully", "user_id": user_id}
